@@ -41,11 +41,19 @@ export default function EventDetail() {
   const milestone = getMilestoneInfo(absDiff);
 
   // Background
-  let heroBg = `linear-gradient(135deg, ${color}CC, ${color}66)`;
+  let heroBgStyle: React.CSSProperties = {
+    background: `linear-gradient(135deg, ${color}CC, ${color}66)`,
+  };
   if (event.coverImage?.startsWith('gradient:')) {
     const gid = event.coverImage.replace('gradient:', '');
     const preset = GRADIENT_PRESETS.find((g) => g.id === gid);
-    if (preset) heroBg = `linear-gradient(135deg, ${preset.colors.join(', ')})`;
+    if (preset) heroBgStyle = { background: `linear-gradient(135deg, ${preset.colors.join(', ')})` };
+  } else if (event.coverImage?.startsWith('data:') || event.coverImage?.startsWith('http')) {
+    heroBgStyle = {
+      backgroundImage: `linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.45)), url(${event.coverImage})`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+    };
   }
 
   // Live countdown units
@@ -89,7 +97,7 @@ export default function EventDetail() {
         {/* Hero card */}
         <div style={{
           borderRadius: 24, overflow: 'hidden',
-          background: heroBg, marginBottom: 16,
+          ...heroBgStyle, marginBottom: 16,
           padding: '32px 24px',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>

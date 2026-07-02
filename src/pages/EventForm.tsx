@@ -1,6 +1,10 @@
 import { useState, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CountdownEvent, EventType, RepeatType, THEME_COLORS, DEFAULT_COLOR, REPEAT_LABELS } from '../types';
+import {
+  CountdownEvent, EventType, RepeatType,
+  THEME_COLORS, DEFAULT_COLOR, REPEAT_LABELS,
+  GRADIENT_PRESETS, GradientCategory,
+} from '../types';
 import { useCategoryStore } from '../store/categoryStore';
 import { useTheme } from '../theme/ThemeContext';
 
@@ -13,20 +17,31 @@ interface Props {
   title: string;
 }
 
+const GRADIENT_CATEGORIES: { key: GradientCategory; label: string }[] = [
+  { key: 'sakura', label: '🌸 桜' },
+  { key: 'wa',     label: '🏮 和' },
+  { key: 'shiki',  label: '🍁 四季' },
+  { key: 'wabi',   label: '🍵 侘寂' },
+  { key: 'yugen',  label: '🌙 幽玄' },
+  { key: 'sumi',   label: '🖌️ 墨' },
+];
+
 export default function EventForm({ initialData, onSubmit, onDelete, title }: Props) {
   const navigate = useNavigate();
   const { categories } = useCategoryStore();
   const { colors } = useTheme();
 
-  const [formTitle, setFormTitle]         = useState(initialData?.title ?? '');
-  const [targetDate, setTargetDate]       = useState(initialData?.targetDate ?? '');
-  const [type, setType]                   = useState<EventType>(initialData?.type ?? 'countdown');
-  const [repeat, setRepeat]               = useState<RepeatType>(initialData?.repeat ?? 'none');
-  const [categoryId, setCategoryId]       = useState(initialData?.categoryId ?? '');
-  const [themeColor, setThemeColor]       = useState(initialData?.themeColor ?? DEFAULT_COLOR);
-  const [icon, setIcon]                   = useState(initialData?.icon ?? '');
-  const [note, setNote]                   = useState(initialData?.note ?? '');
-  const [pinned]                          = useState(initialData?.pinned ?? false);
+  const [formTitle, setFormTitle]       = useState(initialData?.title ?? '');
+  const [targetDate, setTargetDate]     = useState(initialData?.targetDate ?? '');
+  const [type, setType]                 = useState<EventType>(initialData?.type ?? 'countdown');
+  const [repeat, setRepeat]             = useState<RepeatType>(initialData?.repeat ?? 'none');
+  const [categoryId, setCategoryId]     = useState(initialData?.categoryId ?? '');
+  const [themeColor, setThemeColor]     = useState(initialData?.themeColor ?? DEFAULT_COLOR);
+  const [coverImage, setCoverImage]     = useState(initialData?.coverImage ?? '');
+  const [icon, setIcon]                 = useState(initialData?.icon ?? '');
+  const [note, setNote]                 = useState(initialData?.note ?? '');
+  const [pinned]                        = useState(initialData?.pinned ?? false);
+  const [gradCat, setGradCat]           = useState<GradientCategory>('sakura');
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -40,26 +55,41 @@ export default function EventForm({ initialData, onSubmit, onDelete, title }: Pr
       pinned,
       categoryId: categoryId || undefined,
       themeColor,
+      coverImage: coverImage || undefined,
       icon: icon.trim() || undefined,
       note: note.trim() || undefined,
     });
+  }
+
+  function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => setCoverImage(ev.target?.result as string);
+    reader.readAsDataURL(file);
   }
 
   const labelStyle: React.CSSProperties = {
     fontSize: 13, fontWeight: 600, color: colors.textMuted,
     marginBottom: 6, display: 'block',
   };
-
   const inputStyle: React.CSSProperties = {
     width: '100%', padding: '12px 14px', borderRadius: 12,
     border: `1.5px solid ${colors.border}`, backgroundColor: colors.inputBg,
     color: colors.text, fontSize: 15, outline: 'none', boxSizing: 'border-box',
   };
-
   const sectionStyle: React.CSSProperties = {
     backgroundColor: colors.surface, borderRadius: 16,
     padding: '16px', marginBottom: 12,
   };
+  const chipBtn = (active: boolean, accent = '#5B8DEF'): React.CSSProperties => ({
+    padding: '5px 12px', borderRadius: 16, fontSize: 12, fontWeight: 600,
+    border: `1.5px solid ${active ? accent : colors.border}`,
+    backgroundColor: active ? accent + '1A' : colors.inputBg,
+    color: active ? accent : colors.textMuted, cursor: 'pointer',
+  });
+
+  const selectedGradId = coverImage.startsWith('gradient:') ? coverImage.replace('gradient:', '') : '';
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: colors.background }}>
@@ -75,6 +105,7 @@ export default function EventForm({ initialData, onSubmit, onDelete, title }: Pr
       </div>
 
       <form id="event-form" onSubmit={handleSubmit} style={{ maxWidth: 640, width: '100%', margin: '0 auto', padding: '16px 16px 40px' }}>
+
         {/* Title & Icon */}
         <div style={sectionStyle}>
           <label style={labelStyle}>活动名称 *</label>
@@ -113,18 +144,12 @@ export default function EventForm({ initialData, onSubmit, onDelete, title }: Pr
           <label style={labelStyle}>类型</label>
           <div style={{ display: 'flex', gap: 8 }}>
             {(['countdown', 'countup'] as EventType[]).map((t) => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => setType(t)}
-                style={{
-                  flex: 1, padding: '10px', borderRadius: 10, fontSize: 14, fontWeight: 600,
-                  border: `1.5px solid ${type === t ? '#5B8DEF' : colors.border}`,
-                  backgroundColor: type === t ? '#5B8DEF' : colors.inputBg,
-                  color: type === t ? '#fff' : colors.textSecondary,
-                  cursor: 'pointer',
-                }}
-              >
+              <button key={t} type="button" onClick={() => setType(t)} style={{
+                flex: 1, padding: '10px', borderRadius: 10, fontSize: 14, fontWeight: 600,
+                border: `1.5px solid ${type === t ? '#5B8DEF' : colors.border}`,
+                backgroundColor: type === t ? '#5B8DEF' : colors.inputBg,
+                color: type === t ? '#fff' : colors.textSecondary, cursor: 'pointer',
+              }}>
                 {t === 'countdown' ? '⏳ 倒数日' : '📅 纪念日'}
               </button>
             ))}
@@ -149,29 +174,20 @@ export default function EventForm({ initialData, onSubmit, onDelete, title }: Pr
         <div style={sectionStyle}>
           <label style={labelStyle}>分类</label>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button
-              type="button"
-              onClick={() => setCategoryId('')}
-              style={{
-                padding: '7px 14px', borderRadius: 20, fontSize: 13, fontWeight: 600,
-                border: `1.5px solid ${!categoryId ? '#5B8DEF' : colors.border}`,
-                backgroundColor: !categoryId ? '#5B8DEF1A' : colors.pillBg,
-                color: !categoryId ? '#5B8DEF' : colors.textMuted, cursor: 'pointer',
-              }}
-            >无</button>
+            <button type="button" onClick={() => setCategoryId('')} style={{
+              padding: '7px 14px', borderRadius: 20, fontSize: 13, fontWeight: 600,
+              border: `1.5px solid ${!categoryId ? '#5B8DEF' : colors.border}`,
+              backgroundColor: !categoryId ? '#5B8DEF1A' : colors.pillBg,
+              color: !categoryId ? '#5B8DEF' : colors.textMuted, cursor: 'pointer',
+            }}>无</button>
             {categories.map((cat) => (
-              <button
-                key={cat.id}
-                type="button"
-                onClick={() => setCategoryId(cat.id)}
-                style={{
-                  padding: '7px 14px', borderRadius: 20, fontSize: 13, fontWeight: 600,
-                  border: `1.5px solid ${categoryId === cat.id ? cat.color : colors.border}`,
-                  backgroundColor: categoryId === cat.id ? cat.color + '1A' : colors.pillBg,
-                  color: categoryId === cat.id ? cat.color : colors.textMuted,
-                  cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5,
-                }}
-              >
+              <button key={cat.id} type="button" onClick={() => setCategoryId(cat.id)} style={{
+                padding: '7px 14px', borderRadius: 20, fontSize: 13, fontWeight: 600,
+                border: `1.5px solid ${categoryId === cat.id ? cat.color : colors.border}`,
+                backgroundColor: categoryId === cat.id ? cat.color + '1A' : colors.pillBg,
+                color: categoryId === cat.id ? cat.color : colors.textMuted,
+                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5,
+              }}>
                 <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: cat.color, display: 'inline-block' }} />
                 {cat.label}
               </button>
@@ -179,25 +195,108 @@ export default function EventForm({ initialData, onSubmit, onDelete, title }: Pr
           </div>
         </div>
 
-        {/* Theme color */}
+        {/* Theme color (accent) */}
         <div style={sectionStyle}>
-          <label style={labelStyle}>主题颜色</label>
+          <label style={labelStyle}>主题颜色（卡片配色）</label>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             {THEME_COLORS.map((c) => (
-              <button
-                key={c}
-                type="button"
-                onClick={() => setThemeColor(c)}
-                style={{
-                  width: 36, height: 36, borderRadius: '50%', backgroundColor: c,
-                  border: themeColor === c ? `3px solid ${colors.text}` : '3px solid transparent',
-                  cursor: 'pointer', padding: 0,
-                  boxShadow: themeColor === c ? `0 0 0 2px ${colors.background}` : 'none',
-                  outline: themeColor === c ? `2px solid ${c}` : 'none',
-                }}
-              />
+              <button key={c} type="button" onClick={() => setThemeColor(c)} style={{
+                width: 36, height: 36, borderRadius: '50%', backgroundColor: c,
+                border: themeColor === c ? `3px solid ${colors.text}` : '3px solid transparent',
+                cursor: 'pointer', padding: 0,
+                boxShadow: themeColor === c ? `0 0 0 2px ${colors.background}, 0 0 0 4px ${c}` : '0 2px 4px rgba(0,0,0,0.15)',
+              }} />
             ))}
           </div>
+        </div>
+
+        {/* Background (gradient presets + photo) */}
+        <div style={sectionStyle}>
+          <label style={labelStyle}>详情页背景</label>
+
+          {/* Category tabs */}
+          <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
+            {GRADIENT_CATEGORIES.map(({ key, label }) => (
+              <button key={key} type="button" onClick={() => setGradCat(key)} style={chipBtn(gradCat === key)}>
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* Gradient swatches */}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
+            {GRADIENT_PRESETS.filter((g) => g.category === gradCat).map((preset) => {
+              const isSelected = selectedGradId === preset.id;
+              return (
+                <button
+                  key={preset.id}
+                  type="button"
+                  title={preset.label}
+                  onClick={() => setCoverImage(isSelected ? '' : `gradient:${preset.id}`)}
+                  style={{
+                    width: 44, height: 44, borderRadius: 12, padding: 0, cursor: 'pointer',
+                    background: `linear-gradient(135deg, ${preset.colors.join(', ')})`,
+                    border: isSelected ? `3px solid ${colors.text}` : '3px solid transparent',
+                    boxShadow: isSelected
+                      ? `0 0 0 2px ${colors.background}, 0 0 0 4px ${preset.colors[0]}`
+                      : '0 2px 6px rgba(0,0,0,0.18)',
+                    position: 'relative',
+                  }}
+                >
+                  {isSelected && (
+                    <span style={{
+                      position: 'absolute', inset: 0, display: 'flex',
+                      alignItems: 'center', justifyContent: 'center',
+                      fontSize: 18, color: preset.dark ? '#fff' : '#333',
+                    }}>✓</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Photo upload */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <label style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              padding: '9px 16px', borderRadius: 10, fontSize: 13, fontWeight: 600,
+              border: `1.5px solid ${colors.border}`, backgroundColor: colors.inputBg,
+              color: colors.textSecondary, cursor: 'pointer',
+            }}>
+              🖼️ 上传图片
+              <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePhotoUpload} />
+            </label>
+            {coverImage && (
+              <button type="button" onClick={() => setCoverImage('')} style={{
+                padding: '9px 16px', borderRadius: 10, fontSize: 13, fontWeight: 600,
+                border: '1.5px solid #F87171', backgroundColor: 'transparent',
+                color: '#F87171', cursor: 'pointer',
+              }}>✕ 清除背景</button>
+            )}
+          </div>
+
+          {/* Photo preview */}
+          {coverImage.startsWith('data:') && (
+            <div style={{ marginTop: 10, borderRadius: 12, overflow: 'hidden', height: 90 }}>
+              <img src={coverImage} alt="背景预览" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            </div>
+          )}
+
+          {/* Gradient preview */}
+          {selectedGradId && (
+            <div style={{
+              marginTop: 10, borderRadius: 12, height: 48,
+              background: `linear-gradient(135deg, ${GRADIENT_PRESETS.find(g => g.id === selectedGradId)?.colors.join(', ')})`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <span style={{
+                fontSize: 13, fontWeight: 600,
+                color: GRADIENT_PRESETS.find(g => g.id === selectedGradId)?.dark ? '#fff' : '#333',
+              }}>
+                {GRADIENT_PRESETS.find(g => g.id === selectedGradId)?.label}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Note */}
@@ -212,20 +311,13 @@ export default function EventForm({ initialData, onSubmit, onDelete, title }: Pr
           />
         </div>
 
-        {/* Delete button */}
+        {/* Delete */}
         {onDelete && (
-          <button
-            type="button"
-            onClick={() => {
-              if (window.confirm('确定删除这个活动？')) onDelete();
-            }}
-            style={{
-              width: '100%', padding: '14px', borderRadius: 14,
-              border: '1.5px solid #F87171', backgroundColor: 'transparent',
-              color: '#F87171', fontSize: 15, fontWeight: 600, cursor: 'pointer',
-              marginTop: 8,
-            }}
-          >🗑️ 删除活动</button>
+          <button type="button" onClick={() => { if (window.confirm('确定删除这个活动？')) onDelete(); }} style={{
+            width: '100%', padding: '14px', borderRadius: 14,
+            border: '1.5px solid #F87171', backgroundColor: 'transparent',
+            color: '#F87171', fontSize: 15, fontWeight: 600, cursor: 'pointer', marginTop: 8,
+          }}>🗑️ 删除活动</button>
         )}
       </form>
     </div>
