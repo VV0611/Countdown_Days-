@@ -26,33 +26,43 @@ const GRADIENT_CATEGORIES: { key: GradientCategory; label: string }[] = [
   { key: 'sumi',   label: '🖌️ 墨' },
 ];
 
+const EMOJI_GROUPS = [
+  { label: '❤️ 情感', emojis: ['❤️','💕','💖','💗','💝','🥰','😍','😘','💏','💑','👨‍👩‍👦','👨‍👩‍👧','👪','🫂','🤗','😊'] },
+  { label: '🎉 庆典', emojis: ['🎉','🎊','🎈','🎂','🍰','🎁','🥳','🏆','🎖️','👑','🥂','🍾','✨','⭐','🌟','💫'] },
+  { label: '🌸 自然', emojis: ['🌸','🌺','🌹','🌷','🌻','🍀','🌈','☀️','🌙','⭐','❄️','🌊','🔥','🍁','🌿','🦋'] },
+  { label: '✈️ 旅行', emojis: ['✈️','🏖️','🏔️','🗺️','🏠','🏡','🌏','🚀','🛳️','🚂','🚗','🎡','🗼','🏯','⛩️','🌉'] },
+  { label: '📚 学习', emojis: ['📚','🎓','✏️','📝','💡','🔬','🏫','💻','📊','📈','🎯','🏅','📖','🔭','🧪','⚗️'] },
+  { label: '💼 工作', emojis: ['💼','📅','💻','📱','📊','📝','🔑','🏢','👔','🤝','📞','✉️','📌','🖥️','⌨️','🖨️'] },
+  { label: '🍕 美食', emojis: ['🍕','🎂','🍜','🍣','🍸','☕','🍵','🍦','🥂','🍾','🍩','🍪','🥗','🍱','🍔','🍰'] },
+  { label: '💪 运动', emojis: ['⚽','🏀','🎾','🏋️','🧘','🏃','🎮','🎲','🏊','🚴','⛷️','🏄','🥊','🎯','🏇','🎿'] },
+];
+
 export default function EventForm({ initialData, onSubmit, onDelete, title }: Props) {
   const navigate = useNavigate();
   const { categories } = useCategoryStore();
   const { colors } = useTheme();
 
-  const [formTitle, setFormTitle]       = useState(initialData?.title ?? '');
-  const [targetDate, setTargetDate]     = useState(initialData?.targetDate ?? '');
-  const [type, setType]                 = useState<EventType>(initialData?.type ?? 'countdown');
-  const [repeat, setRepeat]             = useState<RepeatType>(initialData?.repeat ?? 'none');
-  const [categoryId, setCategoryId]     = useState(initialData?.categoryId ?? '');
-  const [themeColor, setThemeColor]     = useState(initialData?.themeColor ?? DEFAULT_COLOR);
-  const [coverImage, setCoverImage]     = useState(initialData?.coverImage ?? '');
-  const [icon, setIcon]                 = useState(initialData?.icon ?? '');
-  const [note, setNote]                 = useState(initialData?.note ?? '');
-  const [pinned]                        = useState(initialData?.pinned ?? false);
-  const [gradCat, setGradCat]           = useState<GradientCategory>('sakura');
+  const [formTitle, setFormTitle]     = useState(initialData?.title ?? '');
+  const [targetDate, setTargetDate]   = useState(initialData?.targetDate ?? '');
+  const [type, setType]               = useState<EventType>(initialData?.type ?? 'countdown');
+  const [repeat, setRepeat]           = useState<RepeatType>(initialData?.repeat ?? 'none');
+  const [categoryId, setCategoryId]   = useState(initialData?.categoryId ?? '');
+  const [themeColor, setThemeColor]   = useState(initialData?.themeColor ?? DEFAULT_COLOR);
+  const [coverImage, setCoverImage]   = useState(initialData?.coverImage ?? '');
+  const [icon, setIcon]               = useState(initialData?.icon ?? '');
+  const [note, setNote]               = useState(initialData?.note ?? '');
+  const [pinned]                      = useState(initialData?.pinned ?? false);
+  const [gradCat, setGradCat]         = useState<GradientCategory>('sakura');
+  const [showIconPicker, setShowIconPicker] = useState(false);
+  const [emojiGroup, setEmojiGroup]   = useState(0);
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!formTitle.trim() || !targetDate) return;
     onSubmit({
       title: formTitle.trim(),
-      targetDate,
-      type,
-      repeat,
-      isLunar: false,
-      pinned,
+      targetDate, type, repeat,
+      isLunar: false, pinned,
       categoryId: categoryId || undefined,
       themeColor,
       coverImage: coverImage || undefined,
@@ -82,7 +92,7 @@ export default function EventForm({ initialData, onSubmit, onDelete, title }: Pr
     backgroundColor: colors.surface, borderRadius: 16,
     padding: '16px', marginBottom: 12,
   };
-  const chipBtn = (active: boolean, accent = '#5B8DEF'): React.CSSProperties => ({
+  const chip = (active: boolean, accent = '#5B8DEF'): React.CSSProperties => ({
     padding: '5px 12px', borderRadius: 16, fontSize: 12, fontWeight: 600,
     border: `1.5px solid ${active ? accent : colors.border}`,
     backgroundColor: active ? accent + '1A' : colors.inputBg,
@@ -110,13 +120,19 @@ export default function EventForm({ initialData, onSubmit, onDelete, title }: Pr
         <div style={sectionStyle}>
           <label style={labelStyle}>活动名称 *</label>
           <div style={{ display: 'flex', gap: 10 }}>
-            <input
-              value={icon}
-              onChange={(e) => setIcon(e.target.value)}
-              placeholder="图标"
-              maxLength={4}
-              style={{ ...inputStyle, width: 60, textAlign: 'center', fontSize: 20, padding: '12px 8px', flexShrink: 0 }}
-            />
+            {/* Icon button — click to open picker */}
+            <button
+              type="button"
+              onClick={() => setShowIconPicker((v) => !v)}
+              style={{
+                ...inputStyle, width: 60, textAlign: 'center', fontSize: 24,
+                padding: '12px 8px', flexShrink: 0, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxSizing: 'border-box',
+              }}
+            >
+              {icon || '😊'}
+            </button>
             <input
               value={formTitle}
               onChange={(e) => setFormTitle(e.target.value)}
@@ -125,6 +141,62 @@ export default function EventForm({ initialData, onSubmit, onDelete, title }: Pr
               style={{ ...inputStyle, flex: 1 }}
             />
           </div>
+
+          {/* Icon Picker */}
+          {showIconPicker && (
+            <div style={{
+              marginTop: 10, backgroundColor: colors.background,
+              borderRadius: 14, border: `1px solid ${colors.border}`,
+              overflow: 'hidden',
+            }}>
+              {/* Group tabs */}
+              <div style={{
+                display: 'flex', overflowX: 'auto', gap: 0,
+                borderBottom: `1px solid ${colors.border}`,
+              }}>
+                {EMOJI_GROUPS.map((g, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setEmojiGroup(i)}
+                    style={{
+                      flexShrink: 0, padding: '8px 12px', fontSize: 18,
+                      background: emojiGroup === i ? colors.surface : 'transparent',
+                      border: 'none', cursor: 'pointer',
+                      borderBottom: emojiGroup === i ? `2px solid #5B8DEF` : '2px solid transparent',
+                    }}
+                  >
+                    {g.emojis[0]}
+                  </button>
+                ))}
+              </div>
+              {/* Emoji grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', padding: '8px' }}>
+                {/* Clear option */}
+                <button
+                  type="button"
+                  onClick={() => { setIcon(''); setShowIconPicker(false); }}
+                  style={{
+                    fontSize: 13, padding: '6px', borderRadius: 8, border: 'none',
+                    background: !icon ? colors.pillBg : 'transparent',
+                    cursor: 'pointer', color: colors.textMuted,
+                  }}
+                >无</button>
+                {EMOJI_GROUPS[emojiGroup].emojis.map((em) => (
+                  <button
+                    key={em}
+                    type="button"
+                    onClick={() => { setIcon(em); setShowIconPicker(false); }}
+                    style={{
+                      fontSize: 24, padding: '6px', borderRadius: 8, border: 'none',
+                      background: icon === em ? colors.pillBg : 'transparent',
+                      cursor: 'pointer',
+                    }}
+                  >{em}</button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Date */}
@@ -195,7 +267,7 @@ export default function EventForm({ initialData, onSubmit, onDelete, title }: Pr
           </div>
         </div>
 
-        {/* Theme color (accent) */}
+        {/* Theme color */}
         <div style={sectionStyle}>
           <label style={labelStyle}>主题颜色（卡片配色）</label>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
@@ -204,20 +276,22 @@ export default function EventForm({ initialData, onSubmit, onDelete, title }: Pr
                 width: 36, height: 36, borderRadius: '50%', backgroundColor: c,
                 border: themeColor === c ? `3px solid ${colors.text}` : '3px solid transparent',
                 cursor: 'pointer', padding: 0,
-                boxShadow: themeColor === c ? `0 0 0 2px ${colors.background}, 0 0 0 4px ${c}` : '0 2px 4px rgba(0,0,0,0.15)',
+                boxShadow: themeColor === c
+                  ? `0 0 0 2px ${colors.background}, 0 0 0 4px ${c}`
+                  : '0 2px 4px rgba(0,0,0,0.15)',
               }} />
             ))}
           </div>
         </div>
 
-        {/* Background (gradient presets + photo) */}
+        {/* Background (gradients + photo) */}
         <div style={sectionStyle}>
           <label style={labelStyle}>详情页背景</label>
 
-          {/* Category tabs */}
+          {/* Gradient category tabs */}
           <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
             {GRADIENT_CATEGORIES.map(({ key, label }) => (
-              <button key={key} type="button" onClick={() => setGradCat(key)} style={chipBtn(gradCat === key)}>
+              <button key={key} type="button" onClick={() => setGradCat(key)} style={chip(gradCat === key)}>
                 {label}
               </button>
             ))}
@@ -263,7 +337,7 @@ export default function EventForm({ initialData, onSubmit, onDelete, title }: Pr
               border: `1.5px solid ${colors.border}`, backgroundColor: colors.inputBg,
               color: colors.textSecondary, cursor: 'pointer',
             }}>
-              🖼️ 上传图片
+              🖼️ 从相册上传
               <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePhotoUpload} />
             </label>
             {coverImage && (
@@ -275,14 +349,12 @@ export default function EventForm({ initialData, onSubmit, onDelete, title }: Pr
             )}
           </div>
 
-          {/* Photo preview */}
+          {/* Preview */}
           {coverImage.startsWith('data:') && (
             <div style={{ marginTop: 10, borderRadius: 12, overflow: 'hidden', height: 90 }}>
               <img src={coverImage} alt="背景预览" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             </div>
           )}
-
-          {/* Gradient preview */}
           {selectedGradId && (
             <div style={{
               marginTop: 10, borderRadius: 12, height: 48,

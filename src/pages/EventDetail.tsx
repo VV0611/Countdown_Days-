@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import dayjs from 'dayjs';
 import { useEventStore } from '../store/eventStore';
@@ -15,6 +15,7 @@ export default function EventDetail() {
   const { categories } = useCategoryStore();
   const { colors } = useTheme();
   const event = events.find((e) => e.id === id);
+  const heroRef = useRef<HTMLDivElement>(null);
 
   const [now, setNow] = useState(new Date());
   useEffect(() => {
@@ -40,14 +41,19 @@ export default function EventDetail() {
   const category = event.categoryId ? categories.find((c) => c.id === event.categoryId) : undefined;
   const milestone = getMilestoneInfo(absDiff);
 
-  // Background
+  // Background style
   let heroBgStyle: React.CSSProperties = {
     background: `linear-gradient(135deg, ${color}CC, ${color}66)`,
   };
+  let gradientColors: string[] = [color + 'CC', color + '66'];
+
   if (event.coverImage?.startsWith('gradient:')) {
     const gid = event.coverImage.replace('gradient:', '');
     const preset = GRADIENT_PRESETS.find((g) => g.id === gid);
-    if (preset) heroBgStyle = { background: `linear-gradient(135deg, ${preset.colors.join(', ')})` };
+    if (preset) {
+      gradientColors = preset.colors;
+      heroBgStyle = { background: `linear-gradient(135deg, ${preset.colors.join(', ')})` };
+    }
   } else if (event.coverImage?.startsWith('data:') || event.coverImage?.startsWith('http')) {
     heroBgStyle = {
       backgroundImage: `linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.45)), url(${event.coverImage})`,
@@ -80,6 +86,107 @@ export default function EventDetail() {
     }
   }
 
+  async function handleDownloadImage() {
+    if (!event) return;
+    const W = 800, H = 460;
+    const canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d')!;
+
+    // Rounded rect clip
+    const r = 32;
+    ctx.beginPath();
+    ctx.moveTo(r, 0);
+    ctx.lineTo(W - r, 0);
+    ctx.quadraticCurveTo(W, 0, W, r);
+    ctx.lineTo(W, H - r);
+    ctx.quadraticCurveTo(W, H, W - r, H);
+    ctx.lineTo(r, H);
+    ctx.quadraticCurveTo(0, H, 0, H - r);
+    ctx.lineTo(0, r);
+    ctx.quadraticCurveTo(0, 0, r, 0);
+    ctx.closePath();
+    ctx.clip();
+
+    // Background
+    if (event.coverImage?.startsWith('data:') || event.coverImage?.startsWith('http')) {
+      await new Promise<void>((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          ctx.drawImage(img, 0, 0, W, H);
+          ctx.fillStyle = 'rgba(0,0,0,0.42)';
+          ctx.fillRect(0, 0, W, H);
+          resolve();
+        };
+        img.onerror = () => resolve();
+        img.src = event.coverImage!;
+      });
+    } else {
+      const grad = ctx.createLinearGradient(0, 0, W, H);
+      gradientColors.forEach((c, i) => {
+        grad.addColorStop(i / Math.max(gradientColors.length - 1, 1), c);
+      });
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W, H);
+    }
+
+    // Icon
+    if (event.icon) {
+      ctx.font = '64px serif';
+      ctx.fillText(event.icon, 52, 110);
+    }
+
+    // Title
+    ctx.fillStyle = 'rgba(255,255,255,0.92)';
+    ctx.font = `bold 38px -apple-system, "PingFang SC", "Helvetica Neue", sans-serif`;
+    ctx.fillText(event.icon ? event.title : event.title, 52, event.icon ? 165 : 120);
+
+    // Date line
+    ctx.fillStyle = 'rgba(255,255,255,0.68)';
+    ctx.font = `22px -apple-system, "PingFang SC", sans-serif`;
+    ctx.fillText(formatDisplayDate(event.targetDate), 52, event.icon ? 205 : 160);
+
+    // Type label
+    ctx.fillStyle = 'rgba(255,255,255,0.72)';
+    ctx.font = `20px -apple-system, "PingFang SC", sans-serif`;
+    ctx.fillText(typeLabel, 52, H - 130);
+
+    // Big number
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `bold 130px -apple-system, "PingFang SC", sans-serif`;
+    const numStr = isToday ? '🎉' : String(absDiff);
+    ctx.fillText(numStr, 46, H - 56);
+
+    if (!isToday) {
+      const numW = ctx.measureText(numStr).width;
+      ctx.font = `bold 32px -apple-system, "PingFang SC", sans-serif`;
+      ctx.fillStyle = 'rgba(255,255,255,0.82)';
+      ctx.fillText('天', 52 + numW + 8, H - 72);
+    }
+
+    // Watermark
+    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+    ctx.font = `18px -apple-system, "PingFang SC", sans-serif`;
+    ctx.fillText('倒数日', W - 96, H - 28);
+
+    // Download
+    const link = document.createElement('a');
+    link.download = `${event.title}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  }
+
+  async function handleShare() {
+    if (!event) return;
+    const text = `${event.title} — ${isToday ? '就是今天！' : `还有 ${absDiff} 天`}`;
+    if (navigator.share) {
+      await navigator.share({ title: event.title, text });
+    } else {
+      await navigator.clipboard.writeText(text);
+      alert('已复制到剪贴板');
+    }
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: colors.background }}>
       {/* Header */}
@@ -95,11 +202,14 @@ export default function EventDetail() {
 
       <div style={{ maxWidth: 640, width: '100%', margin: '0 auto', padding: '16px' }}>
         {/* Hero card */}
-        <div style={{
-          borderRadius: 24, overflow: 'hidden',
-          ...heroBgStyle, marginBottom: 16,
-          padding: '32px 24px',
-        }}>
+        <div
+          ref={heroRef}
+          style={{
+            borderRadius: 24, overflow: 'hidden',
+            ...heroBgStyle, marginBottom: 16,
+            padding: '32px 24px',
+          }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
             {event.icon && (
               <span style={{ fontSize: 32 }}>{event.icon}</span>
@@ -110,7 +220,11 @@ export default function EventDetail() {
               </div>
               <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.8)', marginTop: 2 }}>
                 {formatDisplayDate(event.targetDate)}
-                {category && <span style={{ marginLeft: 8, backgroundColor: 'rgba(255,255,255,0.2)', padding: '2px 8px', borderRadius: 10, fontSize: 12 }}>{category.label}</span>}
+                {category && (
+                  <span style={{ marginLeft: 8, backgroundColor: 'rgba(255,255,255,0.2)', padding: '2px 8px', borderRadius: 10, fontSize: 12 }}>
+                    {category.label}
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -177,12 +291,12 @@ export default function EventDetail() {
           </div>
         )}
 
-        {/* Action buttons */}
-        <div style={{ display: 'flex', gap: 10 }}>
+        {/* Action buttons — 2×2 grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <button
             onClick={() => togglePin(id!)}
             style={{
-              flex: 1, padding: '14px', borderRadius: 14, fontSize: 14, fontWeight: 600,
+              padding: '14px', borderRadius: 14, fontSize: 14, fontWeight: 600,
               border: `1.5px solid ${event.pinned ? color : colors.border}`,
               backgroundColor: event.pinned ? color + '1A' : colors.surface,
               color: event.pinned ? color : colors.textSecondary, cursor: 'pointer',
@@ -190,25 +304,27 @@ export default function EventDetail() {
           >{event.pinned ? '📌 已置顶' : '📍 置顶'}</button>
 
           <button
-            onClick={() => {
-              if (navigator.share) {
-                navigator.share({ title: event.title, text: `${event.title} — 还有 ${absDiff} 天` });
-              } else {
-                navigator.clipboard.writeText(`${event.title} — 还有 ${absDiff} 天`);
-                alert('已复制到剪贴板');
-              }
-            }}
+            onClick={handleShare}
             style={{
-              flex: 1, padding: '14px', borderRadius: 14, fontSize: 14, fontWeight: 600,
+              padding: '14px', borderRadius: 14, fontSize: 14, fontWeight: 600,
               border: `1.5px solid ${colors.border}`,
               backgroundColor: colors.surface, color: colors.textSecondary, cursor: 'pointer',
             }}
-          >📤 分享</button>
+          >📤 分享文字</button>
+
+          <button
+            onClick={handleDownloadImage}
+            style={{
+              padding: '14px', borderRadius: 14, fontSize: 14, fontWeight: 600,
+              border: `1.5px solid #5B8DEF`,
+              backgroundColor: '#5B8DEF1A', color: '#5B8DEF', cursor: 'pointer',
+            }}
+          >💾 保存图片</button>
 
           <button
             onClick={handleDelete}
             style={{
-              flex: 1, padding: '14px', borderRadius: 14, fontSize: 14, fontWeight: 600,
+              padding: '14px', borderRadius: 14, fontSize: 14, fontWeight: 600,
               border: '1.5px solid #F87171',
               backgroundColor: 'transparent', color: '#F87171', cursor: 'pointer',
             }}
