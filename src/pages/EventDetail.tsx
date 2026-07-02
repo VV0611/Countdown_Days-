@@ -240,10 +240,26 @@ export default function EventDetail() {
                 <span style={{ fontSize: 20, fontWeight: 700, color: 'rgba(255,255,255,0.85)' }}>天</span>
               </div>
             )}
-            {/* Live HH:MM:SS */}
+            {/* Live hours / minutes / seconds with labels */}
             {!isToday && (
-              <div style={{ fontSize: 18, color: 'rgba(255,255,255,0.7)', marginTop: 4, fontVariantNumeric: 'tabular-nums', letterSpacing: 2 }}>
-                {String(hours).padStart(2, '0')}:{String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
+              <div style={{ display: 'flex', justifyContent: 'center', gap: 20, marginTop: 12 }}>
+                {[
+                  { value: hours,   label: '时' },
+                  { value: minutes, label: '分' },
+                  { value: seconds, label: '秒' },
+                ].map(({ value, label }) => (
+                  <div key={label} style={{ textAlign: 'center', minWidth: 36 }}>
+                    <div style={{
+                      fontSize: 26, fontWeight: 700, color: '#fff', lineHeight: 1,
+                      fontVariantNumeric: 'tabular-nums',
+                    }}>
+                      {String(value).padStart(2, '0')}
+                    </div>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', marginTop: 3 }}>
+                      {label}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
