@@ -35,6 +35,15 @@ const EMOJI_GROUPS = [
   { label: '💼 工作', emojis: ['💼','📅','💻','📱','📊','📝','🔑','🏢','👔','🤝','📞','✉️','📌','🖥️','⌨️','🖨️'] },
   { label: '🍕 美食', emojis: ['🍕','🎂','🍜','🍣','🍸','☕','🍵','🍦','🥂','🍾','🍩','🍪','🥗','🍱','🍔','🍰'] },
   { label: '💪 运动', emojis: ['⚽','🏀','🎾','🏋️','🧘','🏃','🎮','🎲','🏊','🚴','⛷️','🏄','🥊','🎯','🏇','🎿'] },
+  {
+    label: '(^_^) 颜文字',
+    emojis: [
+      '(^_^)','(≧▽≦)','(＾▽＾)','(*^▽^*)','(≧ω≦)','(◕‿◕)','(⌒▽⌒)','(●´ω`●)',
+      '(♥‿♥)','(˘▽˘>ԅ(≧▽≦ԅ)','(/▽＼)','(o^▽^o)','٩(◕‿◕｡)۶','(＊˘▽˘)','(✿◡‿◡)','(ﾉ◕ヮ◕)ﾉ',
+      '(╥_╥)','(T_T)','(；ω；)','(っ˘̩╭╮˘̩)っ','(╯°□°）╯','(ﾒ▼▼ﾒ)','(¬_¬)','(￣ω￣)',
+      'ヾ(≧▽≦*)o','(*≧▽≦)','(●♡∀♡)','(♡°▽°♡)','(>_<)','(・∀・)','(°▽°)','(´･ω･`)',
+    ],
+  },
 ];
 
 export default function EventForm({ initialData, onSubmit, onDelete, title }: Props) {
@@ -154,47 +163,66 @@ export default function EventForm({ initialData, onSubmit, onDelete, title }: Pr
                 display: 'flex', overflowX: 'auto', gap: 0,
                 borderBottom: `1px solid ${colors.border}`,
               }}>
-                {EMOJI_GROUPS.map((g, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => setEmojiGroup(i)}
-                    style={{
-                      flexShrink: 0, padding: '8px 12px', fontSize: 18,
-                      background: emojiGroup === i ? colors.surface : 'transparent',
-                      border: 'none', cursor: 'pointer',
-                      borderBottom: emojiGroup === i ? `2px solid #5B8DEF` : '2px solid transparent',
-                    }}
-                  >
-                    {g.emojis[0]}
-                  </button>
-                ))}
+                {EMOJI_GROUPS.map((g, i) => {
+                  const isKaomoji = g.label.includes('颜文字');
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setEmojiGroup(i)}
+                      style={{
+                        flexShrink: 0, padding: '8px 10px',
+                        fontSize: isKaomoji ? 11 : 18,
+                        fontWeight: isKaomoji ? 600 : 400,
+                        background: emojiGroup === i ? colors.surface : 'transparent',
+                        border: 'none', cursor: 'pointer', color: colors.text,
+                        borderBottom: emojiGroup === i ? `2px solid #5B8DEF` : '2px solid transparent',
+                      }}
+                    >
+                      {isKaomoji ? '颜文字' : g.emojis[0]}
+                    </button>
+                  );
+                })}
               </div>
-              {/* Emoji grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', padding: '8px' }}>
-                {/* Clear option */}
-                <button
-                  type="button"
-                  onClick={() => { setIcon(''); setShowIconPicker(false); }}
-                  style={{
-                    fontSize: 13, padding: '6px', borderRadius: 8, border: 'none',
-                    background: !icon ? colors.pillBg : 'transparent',
-                    cursor: 'pointer', color: colors.textMuted,
-                  }}
-                >无</button>
-                {EMOJI_GROUPS[emojiGroup].emojis.map((em) => (
-                  <button
-                    key={em}
-                    type="button"
-                    onClick={() => { setIcon(em); setShowIconPicker(false); }}
-                    style={{
-                      fontSize: 24, padding: '6px', borderRadius: 8, border: 'none',
-                      background: icon === em ? colors.pillBg : 'transparent',
-                      cursor: 'pointer',
-                    }}
-                  >{em}</button>
-                ))}
-              </div>
+              {/* Emoji / kaomoji grid */}
+              {(() => {
+                const isKaomoji = EMOJI_GROUPS[emojiGroup].label.includes('颜文字');
+                return (
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: isKaomoji ? 'repeat(2, 1fr)' : 'repeat(8, 1fr)',
+                    padding: '8px', gap: isKaomoji ? 4 : 0,
+                  }}>
+                    {/* Clear option */}
+                    <button
+                      type="button"
+                      onClick={() => { setIcon(''); setShowIconPicker(false); }}
+                      style={{
+                        fontSize: 13, padding: '6px', borderRadius: 8, border: 'none',
+                        background: !icon ? colors.pillBg : 'transparent',
+                        cursor: 'pointer', color: colors.textMuted,
+                        gridColumn: isKaomoji ? 'span 2' : undefined,
+                      }}
+                    >无</button>
+                    {EMOJI_GROUPS[emojiGroup].emojis.map((em) => (
+                      <button
+                        key={em}
+                        type="button"
+                        onClick={() => { setIcon(em); setShowIconPicker(false); }}
+                        style={{
+                          fontSize: isKaomoji ? 12 : 24,
+                          padding: isKaomoji ? '8px 6px' : '6px',
+                          borderRadius: 8, border: 'none',
+                          background: icon === em ? colors.pillBg : 'transparent',
+                          cursor: 'pointer', color: colors.text,
+                          textAlign: 'center', lineHeight: 1.3,
+                          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                        }}
+                      >{em}</button>
+                    ))}
+                  </div>
+                );
+              })()}
             </div>
           )}
         </div>
