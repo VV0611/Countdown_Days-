@@ -113,7 +113,12 @@ export default function EventDetail() {
       await new Promise<void>((resolve) => {
         const img = new Image();
         img.onload = () => {
-          ctx.drawImage(img, 0, 0, W, H);
+          const scale = Math.max(W / img.width, H / img.height);
+          const dw = img.width * scale;
+          const dh = img.height * scale;
+          const dx = (W - dw) / 2;
+          const dy = (H - dh) / 2;
+          ctx.drawImage(img, dx, dy, dw, dh);
           ctx.fillStyle = 'rgba(0,0,0,0.42)';
           ctx.fillRect(0, 0, W, H);
           resolve();
