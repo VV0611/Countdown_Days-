@@ -4,7 +4,7 @@ import { useEventStore } from '../store/eventStore';
 import { useCategoryStore } from '../store/categoryStore';
 import EventCard from '../components/EventCard';
 import EmptyState from '../components/EmptyState';
-import { sortKey } from '../utils/dateUtils';
+import { sortKey, daysFromToday } from '../utils/dateUtils';
 import { useTheme } from '../theme/ThemeContext';
 
 export default function Home() {
@@ -19,6 +19,11 @@ export default function Home() {
   function confirmDelete(id: string, title: string) {
     if (window.confirm(`确定删除「${title}」？`)) remove(id);
   }
+
+  const todayEvents = useMemo(
+    () => events.filter((e) => daysFromToday(e.targetDate) === 0),
+    [events],
+  );
 
   const sorted = useMemo(() => {
     let filtered = events;
@@ -73,6 +78,37 @@ export default function Home() {
             <button onClick={() => setSearchQuery('')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: colors.textMuted }}>✕</button>
           )}
         </div>
+
+        {/* Today banner */}
+        {todayEvents.length > 0 && (
+          <div style={{ margin: '0 16px 10px' }}>
+            {todayEvents.map((ev) => (
+              <button
+                key={ev.id}
+                onClick={() => navigate(`/event/${ev.id}`)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  width: '100%', textAlign: 'left',
+                  background: 'linear-gradient(135deg, #FF6B9D, #C44EE0)',
+                  border: 'none', borderRadius: 16,
+                  padding: '14px 16px', marginBottom: 8,
+                  cursor: 'pointer', boxShadow: '0 4px 16px rgba(196,78,224,0.35)',
+                }}
+              >
+                <span style={{ fontSize: 28 }}>🎉</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', fontWeight: 600 }}>
+                    就是今天！
+                  </div>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', marginTop: 2 }}>
+                    {ev.icon ? `${ev.icon} ` : ''}{ev.title}
+                  </div>
+                </div>
+                <span style={{ fontSize: 18, color: 'rgba(255,255,255,0.7)' }}>›</span>
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Category chips */}
         <div style={{ display: 'flex', gap: 8, padding: '0 16px 10px', overflowX: 'auto' }}>

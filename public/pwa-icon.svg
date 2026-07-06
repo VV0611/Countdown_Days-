@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF6B9D"/>
+      <stop offset="50%" stop-color="#C44EE0"/>
+      <stop offset="100%" stop-color="#7B4FFF"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <!-- Calendar body -->
+  <rect x="88" y="152" width="336" height="272" rx="28" fill="rgba(255,255,255,0.18)"/>
+  <!-- Calendar top bar -->
+  <rect x="88" y="152" width="336" height="76" rx="28" fill="rgba(255,255,255,0.28)"/>
+  <rect x="88" y="196" width="336" height="32" fill="rgba(255,255,255,0.28)"/>
+  <!-- Hooks -->
+  <rect x="172" y="108" width="22" height="68" rx="11" fill="rgba(255,255,255,0.85)"/>
+  <rect x="318" y="108" width="22" height="68" rx="11" fill="rgba(255,255,255,0.85)"/>
+  <!-- Big day number -->
+  <text x="256" y="368" text-anchor="middle"
+    font-family="-apple-system, 'Helvetica Neue', sans-serif"
+    font-size="180" font-weight="900" fill="white" opacity="0.95">7</text>
+  <!-- 天 label -->
+  <text x="256" y="415" text-anchor="middle"
+    font-family="-apple-system, 'PingFang SC', sans-serif"
+    font-size="52" font-weight="700" fill="rgba(255,255,255,0.75)">天</text>
+</svg>
