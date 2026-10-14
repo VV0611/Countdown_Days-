@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { useState, useEffect, ReactNode } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, ImageBackground, StyleSheet } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import dayjs from 'dayjs';
 import { Ionicons } from '@expo/vector-icons';
 import { useEventStore } from '../../../src/store/eventStore';
@@ -8,6 +9,7 @@ import { daysFromToday, formatDisplayDate } from '../../../src/utils/dateUtils';
 import { getMilestoneInfo } from '../../../src/utils/milestoneUtils';
 import { useT } from '../../../src/i18n/useT';
 import { webMaxWidth } from '../../../src/utils/webStyle';
+import { useCategoryStore, categoryLabel } from '../../../src/store/categoryStore';
 
 export default function EventDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -15,6 +17,7 @@ export default function EventDetailScreen() {
   const { events } = useEventStore();
   const event = events.find((e) => e.id === id);
   const { t, language } = useT();
+  const { categories } = useCategoryStore();
 
   const [now, setNow] = useState(() => new Date());
 
@@ -67,6 +70,7 @@ export default function EventDetailScreen() {
 
   const heroLabel = isToday ? null : isPast ? t('past') : t('remaining');
   const typeLabel = t(event.type === 'countdown' ? 'typeCountdown' : 'typeCountup');
+  const category = categories.find((c) => c.id === event.categoryId);
 
   return (
     <>
@@ -86,7 +90,7 @@ export default function EventDetailScreen() {
 
       <ScrollView style={styles.scroll} contentContainerStyle={webMaxWidth} showsVerticalScrollIndicator={false}>
         {/* ── Hero ─────────────────────────────────────────────── */}
-        <View style={[styles.hero, { backgroundColor: event.themeColor }]}>
+        <HeroBackground coverImage={event.coverImage} themeColor={event.themeColor}>
           {milestone?.status === 'at' && (
             <View style={styles.milestoneBanner}>
               <Text style={styles.milestoneBannerText}>{t('milestoneAt', { value: milestone.value })}</Text>
@@ -115,7 +119,7 @@ export default function EventDetailScreen() {
           )}
 
           <Text style={styles.heroDate}>{formatDisplayDate(event.targetDate, language)}</Text>
-        </View>
+        </HeroBackground>
 
         {/* ── Conversions ──────────────────────────────────────── */}
         {!isToday && (
@@ -157,6 +161,11 @@ export default function EventDetailScreen() {
           <View style={[styles.badge, { backgroundColor: event.themeColor + '22' }]}>
             <Text style={[styles.badgeText, { color: event.themeColor }]}>{typeLabel}</Text>
           </View>
+          {category && (
+            <View style={[styles.badge, { backgroundColor: category.color + '22' }]}>
+              <Text style={[styles.badgeText, { color: category.color }]}>{categoryLabel(category, t)}</Text>
+            </View>
+          )}
           {event.pinned && (
             <View style={[styles.badge, { backgroundColor: '#FBBF2420' }]}>
               <Text style={[styles.badgeText, { color: '#D97706' }]}>{t('pinnedBadge')}</Text>
@@ -199,6 +208,22 @@ function UnitRow({
 
 function Divider() {
   return <View style={styles.divider} />;
+}
+
+function HeroBackground({
+  coverImage, themeColor, children,
+}: {
+  coverImage?: string; themeColor: string; children: ReactNode;
+}) {
+  if (coverImage) {
+    return (
+      <ImageBackground source={{ uri: coverImage }} style={styles.hero}>
+        <LinearGradient colors={['transparent', 'rgba(0,0,0,0.55)']} style={StyleSheet.absoluteFill} />
+        {children}
+      </ImageBackground>
+    );
+  }
+  return <View style={[styles.hero, { backgroundColor: themeColor }]}>{children}</View>;
 }
 
 const styles = StyleSheet.create({

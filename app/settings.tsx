@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useT } from '../src/i18n/useT';
 import { Language } from '../src/i18n/translations';
@@ -13,6 +13,7 @@ const LANGUAGE_OPTIONS: { code: Language; labelKey: 'languageChinese' | 'languag
 
 export default function SettingsScreen() {
   const { t, language, setLanguage } = useT();
+  const router = useRouter();
 
   return (
     <>
@@ -34,6 +35,14 @@ export default function SettingsScreen() {
               </TouchableOpacity>
             ))}
           </View>
+
+          <Text style={[styles.sectionLabel, styles.sectionSpacing]}>{t('categoriesTitle')}</Text>
+          <View style={styles.card}>
+            <TouchableOpacity style={styles.row} onPress={() => router.push('/categories')}>
+              <Text style={styles.rowText}>{t('manageCategories')}</Text>
+              <Ionicons name="chevron-forward" size={18} color="#CBD5E1" />
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     </>
@@ -51,6 +60,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     marginBottom: 8,
   },
+  sectionSpacing: { marginTop: 24 },
   card: {
     backgroundColor: '#fff',
     borderRadius: 16,

@@ -5,16 +5,21 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
+  Image,
   StyleSheet,
   Platform,
 } from 'react-native';
+import { useRouter } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import dayjs from 'dayjs';
 import { CountdownEvent, EventType, DEFAULT_COLOR } from '../types';
 import ColorPicker from './ColorPicker';
 import ConfirmDialog from './ConfirmDialog';
+import ImageCropModal from './ImageCropModal';
 import { useT } from '../i18n/useT';
 import { webMaxWidth } from '../utils/webStyle';
+import { useCategoryStore, categoryLabel } from '../store/categoryStore';
 
 type FormData = Omit<CountdownEvent, 'id' | 'createdAt'>;
 
@@ -26,12 +31,17 @@ interface Props {
 
 export default function EventForm({ initialData, onSubmit, onDelete }: Props) {
   const { t, language } = useT();
+  const router = useRouter();
+  const { categories } = useCategoryStore();
   const [title, setTitle] = useState(initialData?.title ?? '');
   const [targetDate, setTargetDate] = useState<Date>(
     initialData?.targetDate ? new Date(initialData.targetDate) : new Date()
   );
   const [type, setType] = useState<EventType>(initialData?.type ?? 'countdown');
   const [themeColor, setThemeColor] = useState(initialData?.themeColor ?? DEFAULT_COLOR);
+  const [categoryId, setCategoryId] = useState<string | undefined>(initialData?.categoryId);
+  const [coverImage, setCoverImage] = useState<string | undefined>(initialData?.coverImage);
+  const [pickedUri, setPickedUri] = useState<string | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [titleError, setTitleError] = useState(false);
@@ -49,10 +59,22 @@ export default function EventForm({ initialData, onSubmit, onDelete }: Props) {
       repeat: initialData?.repeat ?? 'none',
       isLunar: false,
       pinned: initialData?.pinned ?? false,
-      categoryId: initialData?.categoryId,
-      coverImage: initialData?.coverImage,
+      categoryId,
+      coverImage,
       note: initialData?.note,
     });
+  }
+
+  async function handlePickPhoto() {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) return;
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      quality: 1,
+    });
+    if (!result.canceled && result.assets[0]) {
+      setPickedUri(result.assets[0].uri);
+    }
   }
 
   return (
@@ -107,9 +129,58 @@ export default function EventForm({ initialData, onSubmit, onDelete }: Props) {
         ))}
       </View>
 
+      {/* Category */}
+      <Text style={styles.label}>{t('fieldCategory')}</Text>
+      <View style={styles.chipRow}>
+        <TouchableOpacity
+          style={[styles.chip, !categoryId && styles.chipActive]}
+          onPress={() => setCategoryId(undefined)}
+        >
+          <Text style={[styles.chipText, !categoryId && styles.chipTextActive]}>{t('categoryNone')}</Text>
+        </TouchableOpacity>
+        {categories.map((cat) => {
+          const active = categoryId === cat.id;
+          return (
+            <TouchableOpacity
+              key={cat.id}
+              style={[styles.chip, active && { backgroundColor: cat.color }]}
+              onPress={() => setCategoryId(active ? undefined : cat.id)}
+            >
+              <View style={[styles.chipDot, { backgroundColor: active ? '#fff' : cat.color }]} />
+              <Text style={[styles.chipText, active && styles.chipTextActive]}>{categoryLabel(cat, t)}</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+      <TouchableOpacity onPress={() => router.push('/categories')}>
+        <Text style={styles.linkText}>{t('manageCategories')}</Text>
+      </TouchableOpacity>
+
       {/* Color */}
       <Text style={styles.label}>{t('fieldColor')}</Text>
       <ColorPicker selected={themeColor} onChange={setThemeColor} />
+
+      {/* Cover photo */}
+      <Text style={styles.label}>{t('fieldCoverPhoto')}</Text>
+      {coverImage ? (
+        <View style={styles.coverPreviewWrap}>
+          <Image source={{ uri: coverImage }} style={styles.coverPreview} />
+          <TouchableOpacity style={styles.coverRemoveBtn} onPress={() => setCoverImage(undefined)}>
+            <Text style={styles.coverRemoveText}>{t('removePhoto')}</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <TouchableOpacity style={styles.photoBtn} onPress={handlePickPhoto}>
+          <Text style={styles.photoBtnText}>{t('choosePhoto')}</Text>
+        </TouchableOpacity>
+      )}
+
+      <ImageCropModal
+        visible={!!pickedUri}
+        imageUri={pickedUri}
+        onConfirm={(uri) => { setCoverImage(uri); setPickedUri(null); }}
+        onCancel={() => setPickedUri(null)}
+      />
 
       {/* Preview */}
       <View style={[styles.preview, { backgroundColor: themeColor }]}>
@@ -192,6 +263,59 @@ const styles = StyleSheet.create({
   },
   segmentText: { fontSize: 14, fontWeight: '600', color: '#6B7280' },
   segmentTextActive: { color: '#fff' },
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 20,
+    backgroundColor: '#E5E7EB',
+  },
+  chipActive: { backgroundColor: '#111827' },
+  chipDot: { width: 7, height: 7, borderRadius: 3.5 },
+  chipText: { fontSize: 13, fontWeight: '600', color: '#6B7280' },
+  chipTextActive: { color: '#fff' },
+  linkText: {
+    marginTop: 10,
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#5B8DEF',
+  },
+  photoBtn: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderStyle: 'dashed',
+    paddingVertical: 18,
+    alignItems: 'center',
+  },
+  photoBtnText: { fontSize: 15, fontWeight: '600', color: '#5B8DEF' },
+  coverPreviewWrap: {
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  coverPreview: {
+    width: '100%',
+    aspectRatio: 16 / 9,
+    backgroundColor: '#E5E7EB',
+  },
+  coverRemoveBtn: {
+    position: 'absolute',
+    right: 10,
+    bottom: 10,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  coverRemoveText: { color: '#fff', fontSize: 12, fontWeight: '600' },
   preview: {
     marginTop: 24,
     borderRadius: 16,
