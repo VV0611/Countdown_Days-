@@ -7,16 +7,15 @@ import {
   ScrollView,
   Image,
   StyleSheet,
-  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import dayjs from 'dayjs';
 import { CountdownEvent, EventType, DEFAULT_COLOR } from '../types';
 import ColorPicker from './ColorPicker';
 import ConfirmDialog from './ConfirmDialog';
 import ImageCropModal from './ImageCropModal';
+import DatePickerField from './DatePickerField';
 import { useT } from '../i18n/useT';
 import { webMaxWidth } from '../utils/webStyle';
 import { useCategoryStore, categoryLabel } from '../store/categoryStore';
@@ -42,7 +41,6 @@ export default function EventForm({ initialData, onSubmit, onDelete }: Props) {
   const [categoryId, setCategoryId] = useState<string | undefined>(initialData?.categoryId);
   const [coverImage, setCoverImage] = useState<string | undefined>(initialData?.coverImage);
   const [pickedUri, setPickedUri] = useState<string | null>(null);
-  const [showDatePicker, setShowDatePicker] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [titleError, setTitleError] = useState(false);
 
@@ -93,25 +91,7 @@ export default function EventForm({ initialData, onSubmit, onDelete }: Props) {
 
       {/* Date */}
       <Text style={styles.label}>{t('fieldDate')}</Text>
-      <TouchableOpacity style={styles.dateButton} onPress={() => setShowDatePicker(true)}>
-        <Text style={styles.dateButtonText}>
-          {language === 'zh'
-            ? dayjs(targetDate).format('YYYY年M月D日')
-            : dayjs(targetDate).format('MMMM D, YYYY')}
-        </Text>
-      </TouchableOpacity>
-
-      {showDatePicker && (
-        <DateTimePicker
-          value={targetDate}
-          mode="date"
-          display={Platform.OS === 'ios' ? 'inline' : 'default'}
-          onChange={(_, date) => {
-            setShowDatePicker(Platform.OS === 'ios');
-            if (date) setTargetDate(date);
-          }}
-        />
-      )}
+      <DatePickerField value={targetDate} onChange={setTargetDate} language={language} />
 
       {/* Type */}
       <Text style={styles.label}>{t('fieldType')}</Text>
@@ -239,15 +219,6 @@ const styles = StyleSheet.create({
   },
   inputError: { borderColor: '#EF4444' },
   errorText: { color: '#EF4444', fontSize: 12, marginTop: 4 },
-  dateButton: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  dateButtonText: { fontSize: 16, color: '#111' },
   segmentRow: {
     flexDirection: 'row',
     backgroundColor: '#E5E7EB',
